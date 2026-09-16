@@ -10,6 +10,12 @@
 
 local M = {}
 
+-- Seconds a banner stays up before withdrawing itself. hs.notify reads 0 as
+-- "never withdraw", which is what this used to pass: banners stayed on screen
+-- and stacked up in Notification Center until dismissed by hand. Long enough to
+-- notice from another window, short enough to be disposable.
+M.withdrawAfter = 20
+
 -- Notifications are held until dismissed. Without a reference Lua's GC collects
 -- them before the click arrives and the callback never fires.
 M.pending = {}
@@ -47,7 +53,7 @@ function M.notify(pid, body, id)
     end, {
         title = windowTitle(app) or "Ghostty",
         informativeText = body or "",
-        withdrawAfter = 0,
+        withdrawAfter = M.withdrawAfter,
     })
 
     -- One notification per session: a newer one replaces the older rather than
