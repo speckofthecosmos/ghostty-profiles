@@ -1,0 +1,87 @@
+#!/usr/bin/env sh
+# ghostty-session — open a Ghostty window, optionally themed by a profile,
+# optionally running a command that drops to an interactive shell on exit.
+#
+# Usage: ghostty-session [-p PROFILE] [-s SHELL] [-d DIR] [-n] [--] [COMMAND ...]
+#
+#   -p, --profile   ~/.config/ghostty/config-<PROFILE>; omit for default config
+#   -s, --shell     fish | bash | zsh | <other>   (default: basename of $SHELL)
+#   -d, --dir       working directory             (default: $PWD)
+#   -n, --dry-run   print the argv instead of launching
+#
+# Env: GHOSTTY_BIN, GHOSTTY_PROFILE, GHOSTTY_SESSION_DRYRUN
+# Works on macOS and Linux. On Linux, passing CLI args disables GTK
+# single-instance mode, so each profile gets its own process — same as macOS.
+
+set -eu
+
+PROFILE="${GHOSTTY_PROFILE:-}"
+SHELL_NAME=""
+WORKDIR=""
+DRYRUN="${GHOSTTY_SESSION_DRYRUN:-0}"
+
+usage() { sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; }
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -p|--profile) PROFILE="${2:?--profile needs a value}"; shift 2 ;;
+    -s|--shell)   SHELL_NAME="${2:?--shell needs a value}"; shift 2 ;;
+    -d|--dir)     WORKDIR="${2:?--dir needs a value}"; shift 2 ;;
+    -n|--dry-run) DRYRUN=1; shift ;;
+    -h|--help)    usage; exit 0 ;;
+    --)           shift; break ;;
+    -*)           printf 'ghostty-session: unknown option: %s\n' "$1" >&2; exit 2 ;;
+    *)            break ;;
+  esac
+done
+
+CMD="$*"
+
+if [ -n "${GHOSTTY_BIN:-}" ]; then
+  GT="$GHOSTTY_BIN"
+elif command -v ghostty >/dev/null 2>&1; then
+  GT="$(command -v ghostty)"
+elif [ -x /Applications/Ghostty.app/Contents/MacOS/ghostty ]; then
+  GT=/Applications/Ghostty.app/Contents/MacOS/ghostty
+else
+  echo 'ghostty-session: ghostty not found on PATH; set GHOSTTY_BIN' >&2
+  exit 1
+fi
+
+[ -n "$SHELL_NAME" ] || SHELL_NAME="$(basename "${SHELL:-/bin/sh}")"
+[ -n "$WORKDIR" ]    || WORKDIR="$PWD"
+CONFDIR="${XDG_CONFIG_HOME:-$HOME/.config}/ghostty"
+
+set --
+if [ -n "$PROFILE" ]; then
+  set -- "$@" --config-default-files=false --config-file="$CONFDIR/config-$PROFILE"
+fi
+# --window-inherit-working-directory=false is mandatory: it defaults to true and
+# silently overrides --working-directory with the last-focused window's cwd.
+set -- "$@" --working-directory="$WORKDIR" --window-inherit-working-directory=false
+
+if [ -n "$CMD" ]; then
+  case "$SHELL_NAME" in
+    fish) set -- "$@" -e fish -C "$CMD" ;;
+    *)    set -- "$@" -e "$SHELL_NAME" -i -c "$CMD; exec $SHELL_NAME -i" ;;
+  esac
+fi
+
+if [ "$DRYRUN" = 1 ]; then
+  printf '%s\n' "$GT"
+  for a in "$@"; do printf '  %s\n' "$a"; done
+  exit 0
+fi
+
+# Strip inherited junk: CLAUDE_CODE_* markers make a fresh session think it is a
+# nested child and silently disable its transcript; LC_ALL from some launchers is
+# an ICU identifier that setlocale() cannot parse.
+# Unset by prefix, not by an enumerated list: Claude Code adds markers over time
+# (CLAUDE_CODE_SESSION_ATTENDED showed up in testing and was not in the original
+# denylist), so anything CLAUDE_CODE_* has to go regardless of whether we know it.
+for _v in $(env | sed -n 's/^\(CLAUDE_CODE_[A-Za-z0-9_]*\)=.*/\1/p'); do
+  unset "$_v" || true
+done
+unset LC_ALL || true
+
+"$GT" "$@" >/dev/null 2>&1 &

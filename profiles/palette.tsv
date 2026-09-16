@@ -1,0 +1,16 @@
+# The single source for the visual language.
+# Launcher entries, badge PNGs, and config-<profile> files are all generated from this.
+#
+# badge   = Mission Control side-stripe hue (what you see at thumbnail scale)
+# cursor  = cursor color in the window (what you see while typing)
+# These are deliberately independent: sonnet pairs a green badge with Gruvbox's amber
+# cursor. Badge answers "which window is that?", cursor answers "where am I typing?".
+#
+# profile	label	icon	badge_name	badge_hex	theme	foreground	cursor	command
+opus	Opus	🔷	blue	#3366ff	TokyoNight	#e8b4b8	#e8b4b8	claude --model opus
+sonnet	Sonnet	🟢	green	#00ff66	Gruvbox Dark Hard	-	#fabd2f	claude --model sonnet
+fable	Fable	📖	gold	#ffab00	Rose Pine	#f6c177	#ffab00	claude --model fable
+gemini	Gemini	💎	pink	#ff3399	Catppuccin Mocha	-	#ff3399	gemini
+dev	Dev	🛠	cyan	#00ffff	Nord	-	#00ffff	-
+ops	Ops	⚙️	amber	#ff9500	Gruvbox Dark	-	#ff9500	-
+tasks	Tasks	✅	yellow	#ffee00	Solarized Dark Patched	#f0ece8	#ffee00	-

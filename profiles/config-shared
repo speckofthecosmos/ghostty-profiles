@@ -1,0 +1,17 @@
+# Shared across every profile. Generated configs reference this with config-file.
+# Anything not about variant identity belongs here.
+
+font-family = "FiraCode Nerd Font Mono"
+font-size = 14
+
+shell-integration = detect
+mouse-hide-while-typing = true
+cursor-click-to-move = true
+confirm-close-surface = false
+window-padding-x = 2,11
+
+# Ghostty archives the PTY and re-attaches on undo, so a running session
+# survives an accidental close. The 5s default is too short to notice.
+undo-timeout = 5m
+
+# Deliberately NOT set here: `title`. See docs/traps.md.

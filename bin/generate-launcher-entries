@@ -1,0 +1,95 @@
+#!/usr/bin/env python3
+"""Generate discoverable launcher entries from profiles/palette.tsv.
+
+The entry point is a *searchable, labeled, icon'd list* -- not a keybinding.
+You should be able to find a profile without knowing it exists.
+
+On Linux this means .desktop files. Every launcher reads them: GNOME Activities,
+KDE's menu, rofi -show drun, wofi, fuzzel, Ulauncher, Vicinae, Walker. One
+generator, universal discoverability, no per-launcher adapters.
+
+On macOS there is no .desktop equivalent, so Raycast script commands are the
+analogue -- same idea, different file format.
+
+Usage: generate-launcher-entries [desktop|raycast|list] [--out DIR]
+"""
+import os, stat, sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FIELDS = "profile label icon badge_name badge_hex theme foreground cursor command".split()
+
+
+def rows():
+    with open(os.path.join(ROOT, "profiles", "palette.tsv"), encoding="utf-8") as fh:
+        for line in fh:
+            if line.startswith("#") or not line.strip():
+                continue
+            yield dict(zip(FIELDS, line.rstrip("\n").split("\t")))
+
+
+def emit_desktop(outdir):
+    os.makedirs(outdir, exist_ok=True)
+    for r in rows():
+        if r["command"] == "-":
+            continue
+        path = os.path.join(outdir, f"ghostty-{r['profile']}.desktop")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(
+                "[Desktop Entry]\n"
+                "Type=Application\n"
+                f"Name={r['label']}\n"
+                f"Comment=Ghostty session ({r['profile']} profile) running {r['command']}\n"
+                f"Icon={os.path.join(ROOT, 'icons', r['profile'] + '.png')}\n"
+                f"Exec={os.path.join(ROOT, 'bin', 'ghostty-session')} -p {r['profile']} {r['command']}\n"
+                "Terminal=false\n"
+                f"Keywords=ghostty;terminal;{r['profile']};\n"
+                "Categories=Utility;TerminalEmulator;\n"
+            )
+        print(f"  {r['icon']} {r['label']:<8} -> {os.path.basename(path)}")
+
+
+def emit_raycast(outdir):
+    os.makedirs(outdir, exist_ok=True)
+    for r in rows():
+        if r["command"] == "-":
+            continue
+        path = os.path.join(outdir, f"launch-{r['profile']}.sh")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(
+                "#!/usr/bin/env bash\n\n"
+                "# @raycast.schemaVersion 1\n"
+                f"# @raycast.title {r['label']}\n"
+                "# @raycast.mode silent\n"
+                f"# @raycast.icon {r['icon']}\n"
+                "# @raycast.packageName Ghostty Profiles\n\n"
+                "# Raycast freezes the env it launched with; drop the locale it injects.\n"
+                "unset LC_ALL\n"
+                f'exec "{os.path.join(ROOT, "bin", "ghostty-session")}" -p {r["profile"]} {r["command"]}\n'
+            )
+        os.chmod(path, os.stat(path).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        print(f"  {r['icon']} {r['label']:<8} -> {os.path.basename(path)}")
+
+
+def emit_list():
+    for r in rows():
+        cmd = "(shell only)" if r["command"] == "-" else r["command"]
+        print(f"  {r['icon']}  {r['label']:<8} {r['badge_name']:<7} {r['badge_hex']}  {cmd}")
+
+
+def main():
+    mode = sys.argv[1] if len(sys.argv) > 1 else "list"
+    out = None
+    if "--out" in sys.argv:
+        out = sys.argv[sys.argv.index("--out") + 1]
+    if mode == "desktop":
+        emit_desktop(out or os.path.join(ROOT, "integrations", "desktop"))
+    elif mode == "raycast":
+        emit_raycast(out or os.path.join(ROOT, "integrations", "raycast"))
+    elif mode == "list":
+        emit_list()
+    else:
+        sys.exit(f"unknown mode: {mode} (want desktop|raycast|list)")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+"""Generate Mission Control side-stripe badges from profiles/palette.tsv.
+
+A badge is a solid vertical bar, oversized in height so it fills any window
+without tiling. At Mission Control thumbnail scale it reads as a colored edge;
+at working scale it occupies ~3% of the window and stays out of your way.
+
+Stdlib only -- writes the PNG by hand so the repo has no install step.
+"""
+import os, struct, sys, zlib
+
+WIDTH, HEIGHT = 15, 3000
+ICON = 256
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def solid_png(path, w, h, rgb):
+    raw = b"".join(b"\x00" + bytes(rgb) * w for _ in range(h))
+
+    def chunk(tag, data):
+        body = tag + data
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body) & 0xFFFFFFFF)
+
+    ihdr = struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)
+    with open(path, "wb") as fh:
+        fh.write(b"\x89PNG\r\n\x1a\n"
+                 + chunk(b"IHDR", ihdr)
+                 + chunk(b"IDAT", zlib.compress(raw, 9))
+                 + chunk(b"IEND", b""))
+
+
+def rows(path):
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            if line.startswith("#") or not line.strip():
+                continue
+            yield line.rstrip("\n").split("\t")
+
+
+def main():
+    table = os.path.join(ROOT, "profiles", "palette.tsv")
+    outdir = os.path.join(ROOT, "badges")
+    icondir = os.path.join(ROOT, "icons")
+    os.makedirs(outdir, exist_ok=True)
+    os.makedirs(icondir, exist_ok=True)
+    seen = {}
+    for r in rows(table):
+        profile, name, hexval = r[0], r[3], r[4].lstrip("#")
+        rgb_icon = tuple(int(hexval[i:i + 2], 16) for i in (0, 2, 4))
+        # Square tile for launcher entries: the same hue the window badge uses,
+        # so the color code is taught at the point of choosing, not after.
+        solid_png(os.path.join(icondir, f"{profile}.png"), ICON, ICON, rgb_icon)
+        if name in seen:
+            if seen[name] != hexval:
+                sys.exit(f"palette.tsv: badge '{name}' has two colors: #{seen[name]} and #{hexval}")
+            continue
+        seen[name] = hexval
+        rgb = tuple(int(hexval[i:i + 2], 16) for i in (0, 2, 4))
+        out = os.path.join(outdir, f"{name}.png")
+        solid_png(out, WIDTH, HEIGHT, rgb)
+        print(f"  {name:<7} #{hexval}  -> badges/{name}.png ({os.path.getsize(out)} bytes)")
+    print(f"{len(seen)} badges written to {outdir}")
+
+
+if __name__ == "__main__":
+    main()

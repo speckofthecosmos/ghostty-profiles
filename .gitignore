@@ -1,0 +1,7 @@
+# Generated from profiles/palette.tsv. Run the bin/generate-* scripts after cloning.
+# Not committed: these embed absolute paths from whoever generated them.
+badges/
+icons/
+integrations/desktop/
+integrations/raycast/
+profiles/generated-example/
