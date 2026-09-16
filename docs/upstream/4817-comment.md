@@ -1,9 +1,9 @@
 <!-- Draft comment for https://github.com/ghostty-org/ghostty/discussions/4817
      Venue chosen in RECON.md. Needs no vouch (discussion comment, not a PR).
-     REPLACE the repo URL before posting; nothing is published yet. -->
+     Repo is live. Check the AI disclosure line reads true to you before posting. -->
 
 @SidShaytay's GNOME menu is the same thing I landed on. I generalized it and put it in a
-repo, https://github.com/YOURNAME/ghostty-profiles
+repo, https://github.com/speckofthecosmos/ghostty-profiles
 
 One TSV holds a label, an icon, a badge color, a theme and a cursor color per profile.
 Generators turn that into `config-<profile>` files, a stripe image per window, and
