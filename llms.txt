@@ -1,0 +1,31 @@
+# ghostty-profiles
+
+> Per-model and per-project identity for the Ghostty terminal on macOS and Linux. One
+> table drives Ghostty config files, Mission Control window badges, launcher icons, and
+> searchable launcher entries (.desktop on Linux, Raycast script commands on macOS).
+> Ghostty has no profiles feature; this is the workaround, generalized.
+
+Ghostty (ghostty-org/ghostty) has no profiles, no per-window themes, and no built-in way
+to launch a themed window. Running several instances with different `--config-file`
+values gets you there, and this repo makes that manageable and discoverable.
+
+## Core
+
+- [README](README.md): the problem, quick start, the visual language, launcher entries, shell aliases.
+- [profiles/palette.tsv](profiles/palette.tsv): the single source. Per profile: label, icon, badge hue, theme, foreground, cursor, command.
+- [bin/ghostty-session](bin/ghostty-session): POSIX sh launcher. Works on macOS and Linux. Optional profile, optional command, fish/bash/zsh.
+- [bin/generate-configs](bin/generate-configs): emits `config-<profile>` files.
+- [bin/generate-badges](bin/generate-badges): emits Mission Control side-stripes and launcher icon tiles. Python stdlib only.
+- [bin/generate-launcher-entries](bin/generate-launcher-entries): emits `.desktop` files or Raycast script commands.
+
+## Known traps (each cost real debugging time)
+
+- [docs/traps.md](docs/traps.md): `--working-directory` silently loses to `window-inherit-working-directory` (default true). Setting `title` per profile overwrites the window's accessibility title, which Mission Control, yabai, sketchybar and Raycast read. bash and zsh have no equivalent of fish's `-C`; use `-i -c 'cmd; exec shell -i'`. Inherited `CLAUDE_CODE_*` environment markers make a fresh Claude Code session disable its own transcript; strip by prefix, never by an enumerated list.
+
+## macOS notifications
+
+- [integrations/macos-notify/README.md](integrations/macos-notify/README.md): clicking a Ghostty notification does nothing when several Ghostty processes share the bundle id `com.mitchellh.ghostty`. Hammerspoon posts the notification and focuses the originating process by pid. Also explains why a hand-built helper app cannot do this: macOS Tahoe's `UNUserNotificationCenter` rejects apps that are not Developer ID signed and notarized, with `UNErrorDomain Code=1 "Notifications are not allowed for this application"`.
+
+## Optional
+
+- [docs/keybindings.md](docs/keybindings.md): Hyprland, sway/i3, sxhkd, skhd, GNOME and KDE bindings. An appendix on purpose; a searchable launcher entry is the entry point.

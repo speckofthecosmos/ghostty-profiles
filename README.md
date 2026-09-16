@@ -10,6 +10,22 @@ Ghostty has no profiles. You can point it at a different config file per invocat
 
 This is what I ended up with after a year of running it.
 
+## Does this describe your problem?
+
+- You have five or six Ghostty windows open, all black, all chrome-less, and you cannot
+  tell which one is running which model or project. ⌘Tab says "Ghostty" for every one.
+- You want per-window or per-tab themes in Ghostty and found that `theme` is global.
+- You want profiles, the way iTerm2 or Ptyxis or Konsole have them, and Ghostty has none.
+- You launch a themed window and it opens in the wrong directory, intermittently, even
+  though you passed `--working-directory`.
+- You set `title` per variant and later noticed Mission Control, yabai, sketchybar or
+  Raycast's window switcher all stopped telling you which session a window holds.
+- You click a Ghostty desktop notification on macOS and nothing comes forward. See
+  [`integrations/macos-notify`](integrations/macos-notify/).
+- A brand-new Claude Code session says *"Transcript saving is off, inherited
+  CLAUDE_CODE_CHILD_SESSION marker"* even though it is not nested inside anything. See
+  [`docs/traps.md`](docs/traps.md).
+
 ## What it does
 
 One table, `profiles/palette.tsv`, holds a label, an icon, a badge color, a theme, a cursor color, and a command for each profile. Everything else is generated from it:
