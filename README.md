@@ -22,6 +22,9 @@ This is what I ended up with after a year of running it.
   Raycast's window switcher all stopped telling you which session a window holds.
 - You click a Ghostty desktop notification on macOS and nothing comes forward. See
   [`integrations/macos-notify`](integrations/macos-notify/).
+- A Claude Code notification keeps coming back after you dismiss it. An idle session
+  re-notifies about every 80 seconds. Same place:
+  [`integrations/macos-notify`](integrations/macos-notify/).
 - A brand-new Claude Code session says *"Transcript saving is off, inherited
   CLAUDE_CODE_CHILD_SESSION marker"* even though it is not nested inside anything. See
   [`docs/traps.md`](docs/traps.md).

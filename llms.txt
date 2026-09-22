@@ -24,7 +24,7 @@ values gets you there, and this repo makes that manageable and discoverable.
 
 ## macOS notifications
 
-- [integrations/macos-notify/README.md](integrations/macos-notify/README.md): clicking a Ghostty notification does nothing when several Ghostty processes share the bundle id `com.mitchellh.ghostty`. Hammerspoon posts the notification and focuses the originating process by pid. Also explains why a hand-built helper app cannot do this: macOS Tahoe's `UNUserNotificationCenter` rejects apps that are not Developer ID signed and notarized, with `UNErrorDomain Code=1 "Notifications are not allowed for this application"`.
+- [integrations/macos-notify/README.md](integrations/macos-notify/README.md): clicking a Ghostty notification does nothing when several Ghostty processes share the bundle id `com.mitchellh.ghostty`. Hammerspoon posts the notification and focuses the originating process by pid. Also explains why a hand-built helper app cannot do this: macOS Tahoe's `UNUserNotificationCenter` rejects apps that are not Developer ID signed and notarized, with `UNErrorDomain Code=1 "Notifications are not allowed for this application"`. Also covers the second symptom — a notification that returns after you dismiss it, because an idle Claude Code session re-emits `idle_prompt` about every 80 seconds — and the rate limiting for it, including why a marker keyed on `UserPromptSubmit` is not enough on its own (that hook fires for prompts no human typed). Banner duration is per notification type; `hs.notify` reads `withdrawAfter = 0` as *never withdraw*, not as a default.
 
 ## Optional
 
