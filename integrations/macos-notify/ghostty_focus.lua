@@ -51,6 +51,32 @@ M.withdrawAfter = 20
 -- them before the click arrives and the callback never fires.
 M.pending = {}
 
+-- Per-session memory so a re-announcement of unchanged state doesn't
+-- re-notify: a "still waiting on you" hook firing twice for the same
+-- session is not a new event if you already read the first one.
+M.pidForKey = {}   -- session key -> pid, so the focus watcher can find it
+M.lastBody  = {}   -- session key -> most recent body, sent or not
+M.seenBody  = {}   -- session key -> body you were looking at when last focused
+M.seenTimer = {}   -- session key -> pending debounce timer (GC guard)
+
+-- Mark a session "seen" only after its window has held focus for a beat,
+-- so a Cmd+Tab drive-by during a Space switch doesn't count as reading it.
+-- Same heuristic as the browser router's focus debounce.
+local SEEN_DEBOUNCE = 1
+
+M.appWatcher = hs.application.watcher.new(function(_, eventType, app)
+    if eventType ~= hs.application.watcher.activated then return end
+    local pid = app:pid()
+    for key, kpid in pairs(M.pidForKey) do
+        if kpid == pid then
+            if M.seenTimer[key] then M.seenTimer[key]:stop() end
+            M.seenTimer[key] = hs.timer.doAfter(SEEN_DEBOUNCE, function()
+                M.seenBody[key] = M.lastBody[key]
+            end)
+        end
+    end
+end):start()
+
 local function windowTitle(app)
     if not app then return nil end
     local w = app:focusedWindow() or app:mainWindow()
@@ -70,12 +96,24 @@ function M.notify(pid, body, id, kind)
     local app = hs.application.applicationForPID(pid)
     if not app then return end
 
-    -- Nothing to summon you back to a window you are already looking at.
-    local front = hs.application.frontmostApplication()
-    if front and front:pid() == pid then return end
-
     id = id or tostring(pid)
     local key = "gf_" .. id
+    body = body or ""
+
+    M.pidForKey[key] = pid
+    M.lastBody[key] = body
+
+    -- Nothing to summon you back to a window you are already looking at --
+    -- and that counts as having seen this exact content.
+    local front = hs.application.frontmostApplication()
+    if front and front:pid() == pid then
+        M.seenBody[key] = body
+        return
+    end
+
+    -- You already read this exact state and stepped away; nothing changed
+    -- since, so there is nothing new to tell you.
+    if M.seenBody[key] == body then return end
 
     local n = hs.notify.new(function()
         local target = hs.application.applicationForPID(pid)
@@ -83,7 +121,7 @@ function M.notify(pid, body, id, kind)
         M.pending[key] = nil
     end, {
         title = windowTitle(app) or "Ghostty",
-        informativeText = body or "",
+        informativeText = body,
         withdrawAfter = M.durations[kind] or M.withdrawAfter,
     })
 
